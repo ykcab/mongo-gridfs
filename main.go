@@ -63,3 +63,33 @@ func main() {
 	}
 	log.Printf("Write file to DB was succesful, File size: %d", fileSize)
 }
+
+
+// download function take one parameter as inpute which the name of the
+// file stored in bucket in fs.files collections.
+func downloadfile(fileName string) {
+
+	c := GetConfigInfo()
+	client := initiateMongoClient()
+	db := client.Database("mydatabase")
+	fsFiles := db.Collection("fs.chunks")
+	///fsFilename:= db.Collection("fs.files")
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	var results bson.M
+	err := fsFiles.FindOne(ctx, bson.M{}).Decode(&results)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	bucket, _ := gridfs.NewBucket(
+		client.Database("mydatabase"),
+	)
+	var buf bytes.Buffer
+	dStream, err := bucket.DownloadToStreamByName(fileName, &buf)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("Size to download: %v\n", dStream)
+	ioutil.WriteFile(fileName, buf.Bytes(), 0600)
+
+}
