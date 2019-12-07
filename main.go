@@ -1,95 +1,95 @@
 package main
-​
+
 import (
+	"bytes"
 	"context"
 	"fmt"
-	"os"
 	"io/ioutil"
 	"log"
-	"time"
+	"os"
 	"path"
-​
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/gridfs"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
-​
-func check(e error) {
-	if e != nil {
-		panic(e)
+
+func InitiateMongoClient() *mongo.Client {
+	var err error
+	var client *mongo.Client
+	uri := "mongodb://localhost:27017"
+	opts := options.Client()
+	opts.ApplyURI(uri)
+	opts.SetMaxPoolSize(5)
+	if client, err = mongo.Connect(context.Background(), opts); err != nil {
+		fmt.Println(err.Error())
 	}
+	return client
 }
-​
-func main() {
-​
-	
-	data, err := ioutil.ReadFile("test.deb")
-	
-	fmt.Println(data)
-	check(err)
-​
-	client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017"))
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	err = client.Connect(ctx)
+func UploadFile(file, filename string) {
+
+	data, err := ioutil.ReadFile(file)
+	if err != nil {
+		log.Fatal(err)
+	}
+	conn := InitiateMongoClient()
+	bucket, err := gridfs.NewBucket(
+		conn.Database("myfiles"),
+	)
 	if err != nil {
 		log.Fatal(err)
 		os.Exit(1)
 	}
-​
-	bucket, bucketErr := gridfs.NewBucket(
-		client.Database("articles"),
+	uploadStream, err := bucket.OpenUploadStream(
+		filename,
 	)
-​
-	if bucketErr != nil {
-		log.Fatal("bucketErr")
-		os.Exit(1)
-	}
-​
-	uploadStream, uploadStreamErr := bucket.OpenUploadStream(
-		"fs",
-	)
-	if uploadStreamErr != nil {
-		fmt.Println(uploadStreamErr)
+	if err != nil {
+		fmt.Println(err)
 		os.Exit(1)
 	}
 	defer uploadStream.Close()
-​
-	fileSize, writeErr := uploadStream.Write(data)
-	fmt.Println(fileSize)
-​
-	if writeErr != nil {
-			log.Fatal("writeErr")
-			os.Exit(1)
+
+	fileSize, err := uploadStream.Write(data)
+	if err != nil {
+		log.Fatal(err)
+		os.Exit(1)
 	}
-	log.Printf("Write file to DB was succesful, File size: %d", fileSize)
+	log.Printf("Write file to DB was successful. File size: %d M\n", fileSize)
 }
+func Downloadfile(fileName string) {
+	conn := InitiateMongoClient()
 
-
-// download function take one parameter as inpute which the name of the
-// file stored in bucket in fs.files collections.
-func downloadfile(fileName string) {
-
-	c := GetConfigInfo()
-	client := initiateMongoClient()
-	db := client.Database("mydatabase")
-	fsFiles := db.Collection("fs.chunks")
-	///fsFilename:= db.Collection("fs.files")
+	// For CRUD operations, here is an example
+	db := conn.Database("myfiles")
+	fsFiles := db.Collection("fs.files")
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	var results bson.M
 	err := fsFiles.FindOne(ctx, bson.M{}).Decode(&results)
 	if err != nil {
 		log.Fatal(err)
 	}
+	// you can print out the results
+	fmt.Println(results)
 
 	bucket, _ := gridfs.NewBucket(
-		client.Database("mydatabase"),
+		db,
 	)
 	var buf bytes.Buffer
 	dStream, err := bucket.DownloadToStreamByName(fileName, &buf)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("Size to download: %v\n", dStream)
+	fmt.Printf("File size to download: %v\n", dStream)
 	ioutil.WriteFile(fileName, buf.Bytes(), 0600)
 
+}
+
+func main() {
+	// Get os.Args values
+	file := os.Args[1] //os.Args[1] = myvideo.mp4
+	filename := path.Base(file)
+	UploadFile(file, filename)
+	Downloadfile(filename)
 }
