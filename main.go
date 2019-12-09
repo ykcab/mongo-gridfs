@@ -56,7 +56,7 @@ func UploadFile(file, filename string) {
 		log.Fatal(err)
 		os.Exit(1)
 	}
-	log.Printf("Write file to DB was successful. File size: %d M\n", fileSize)
+	log.Printf("Write file to DB was successful. File size: %d\n", fileSize)
 }
 func Downloadfile(fileName string) {
 	conn := InitiateMongoClient()
@@ -88,7 +88,7 @@ func Downloadfile(fileName string) {
 
 func main() {
 	// Get os.Args values
-	file := os.Args[1] //os.Args[1] = myvideo.mp4
+	file := os.Args[1] //os.Args[1] = testfile.zip
 	filename := path.Base(file)
 	UploadFile(file, filename)
 	Downloadfile(filename)
