@@ -91,5 +91,6 @@ func main() {
 	file := os.Args[1] //os.Args[1] = testfile.zip
 	filename := path.Base(file)
 	UploadFile(file, filename)
-	DownloadFile(filename)
+	// Uncomment the below line and comment the UploadFile above this line to download the file
+	//DownloadFile(filename)
 }
