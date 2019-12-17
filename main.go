@@ -58,7 +58,7 @@ func UploadFile(file, filename string) {
 	}
 	log.Printf("Write file to DB was successful. File size: %d\n", fileSize)
 }
-func Downloadfile(fileName string) {
+func DownloadFile(fileName string) {
 	conn := InitiateMongoClient()
 
 	// For CRUD operations, here is an example
@@ -91,5 +91,5 @@ func main() {
 	file := os.Args[1] //os.Args[1] = testfile.zip
 	filename := path.Base(file)
 	UploadFile(file, filename)
-	Downloadfile(filename)
+	DownloadFile(filename)
 }
